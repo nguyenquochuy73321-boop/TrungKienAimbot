@@ -1,1 +1,284 @@
+-- Xóa toàn bộ menu cũ nếu có để tránh trùng lặp
+if game:GetService("Players").LocalPlayer.PlayerGui:FindFirstChild("TrungKienAimbotPro") then
+    game:GetService("Players").LocalPlayer.PlayerGui:FindFirstChild("TrungKienAimbotPro"):Destroy()
+end
 
+-- Khởi tạo giao diện bằng PlayerGui
+local ScreenGui = Instance.new("ScreenGui")
+local MainFrame = Instance.new("Frame")
+local Title = Instance.new("TextLabel")
+local ToggleBoxBtn = Instance.new("TextButton") 
+local ToggleAimBtn = Instance.new("TextButton")
+local ToggleFOVBtn = Instance.new("TextButton")
+local TiktokLabel = Instance.new("TextLabel")
+
+ScreenGui.Name = "TrungKienAimbotPro"
+ScreenGui.Parent = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
+ScreenGui.ResetOnSpawn = false
+
+-- KHUNG MENU CHÍNH (Nhỏ gọn, nền hơi mờ 0.25, chữ đậm đặc)
+MainFrame.Name = "MainFrame"
+MainFrame.Parent = ScreenGui
+MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+MainFrame.BackgroundTransparency = 0.25 
+MainFrame.BorderColor3 = Color3.fromRGB(150, 150, 150)
+MainFrame.BorderSizePixel = 1
+MainFrame.Position = UDim2.new(0.05, 0, 0.3, 0)
+MainFrame.Size = UDim2.new(0, 220, 0, 220) 
+MainFrame.Active = true
+MainFrame.Draggable = true 
+
+-- TIÊU ĐỀ: TRUNG KIEN AIMBOT
+Title.Name = "Title"
+Title.Parent = MainFrame
+Title.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+Title.BorderSizePixel = 0
+Title.Size = UDim2.new(1, 0, 0, 35)
+Title.Font = Enum.Font.SourceSansBold
+Title.Text = "TRUNG KIEN AIMBOT"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.TextSize = 15
+
+-- NÚT BẬT/TẮT CHỨC NĂNG BOX & LINE ESP MÀU TRẮNG
+ToggleBoxBtn.Name = "ToggleBoxBtn"
+ToggleBoxBtn.Parent = MainFrame
+ToggleBoxBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+ToggleBoxBtn.BorderSizePixel = 0
+ToggleBoxBtn.Position = UDim2.new(0.05, 0, 0.22, 0)
+ToggleBoxBtn.Size = UDim2.new(0.9, 0, 0, 32)
+ToggleBoxBtn.Font = Enum.Font.SourceSansBold
+ToggleBoxBtn.Text = "Box ESP: TẮT"
+ToggleBoxBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+ToggleBoxBtn.TextSize = 13
+
+-- NÚT BẬT/TẮT CHỨC NĂNG AIMBOT GHÌ TÂM CHUẨN
+ToggleAimBtn.Name = "ToggleAimBtn"
+ToggleAimBtn.Parent = MainFrame
+ToggleAimBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+ToggleAimBtn.BorderSizePixel = 0
+ToggleAimBtn.Position = UDim2.new(0.05, 0, 0.42, 0)
+ToggleAimBtn.Size = UDim2.new(0.9, 0, 0, 32)
+ToggleAimBtn.Font = Enum.Font.SourceSansBold
+ToggleAimBtn.Text = "Aimbot: TẮT"
+ToggleAimBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+ToggleAimBtn.TextSize = 13
+
+-- NÚT BẬT/TẮT VÒNG TRÒN FOV
+ToggleFOVBtn.Name = "ToggleFOVBtn"
+ToggleFOVBtn.Parent = MainFrame
+ToggleFOVBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+ToggleFOVBtn.BorderSizePixel = 0
+ToggleFOVBtn.Position = UDim2.new(0.05, 0, 0.62, 0)
+ToggleFOVBtn.Size = UDim2.new(0.9, 0, 0, 32)
+ToggleFOVBtn.Font = Enum.Font.SourceSansBold
+ToggleFOVBtn.Text = "FOV: TẮT"
+ToggleFOVBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+ToggleFOVBtn.TextSize = 13
+
+-- DÒNG CHỮ TIKTOK
+TiktokLabel.Name = "TiktokLabel"
+TiktokLabel.Parent = MainFrame
+TiktokLabel.BackgroundTransparency = 1
+TiktokLabel.Position = UDim2.new(0.05, 0, 0.84, 0)
+TiktokLabel.Size = UDim2.new(0.9, 0, 0, 25)
+TiktokLabel.Font = Enum.Font.SourceSansBold
+TiktokLabel.Text = "Tiktok: trungkiendzvcl231"
+TiktokLabel.TextColor3 = Color3.fromRGB(255, 215, 0) 
+TiktokLabel.TextSize = 13
+TiktokLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+-- ================= HỆ THỐNG XỬ LÝ ESP KÉP & AIMBOT CAO CẤP =================
+
+local BoxESPOn = false
+local AimbotOn = false
+local FOVOn = false
+
+local Camera = workspace.CurrentCamera
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+
+-- Khởi tạo vòng tròn FOV tâm ngắm màu trắng
+local FOVCircle = Drawing.new("Circle")
+FOVCircle.Radius = 140
+FOVCircle.Color = Color3.fromRGB(255, 255, 255)
+FOVCircle.Thickness = 1
+FOVCircle.Filled = false
+FOVCircle.Visible = false
+
+-- Bảng lưu trữ cấu trúc ESP (Gồm cả Hộp Khung và Đường Chỉ)
+local ESPVisuals = {}
+
+local function CreateESP(player)
+    if player == LocalPlayer then return end
+    
+    local Visual = {
+        Outline = Drawing.new("Square"),
+        MainBox = Drawing.new("Square"),
+        TracerLine = Drawing.new("Line") -- Thêm đường kẻ chỉ chân thực
+    }
+    
+    -- Cấu hình viền ngoài hộp đen để đổ bóng sắc nét
+    Visual.Outline.Color = Color3.fromRGB(0, 0, 0)
+    Visual.Outline.Thickness = 3
+    Visual.Outline.Filled = false
+    Visual.Outline.Visible = false
+    
+    -- Cấu hình hộp chính màu TRẮNG BÌNH THƯỜNG theo yêu cầu
+    Visual.MainBox.Color = Color3.fromRGB(255, 255, 255)
+    Visual.MainBox.Thickness = 1.5
+    Visual.MainBox.Filled = false
+    Visual.MainBox.Visible = false
+    
+    -- Cấu hình ĐƯỜNG CHỈ TRACER màu TRẮNG
+    Visual.TracerLine.Color = Color3.fromRGB(255, 255, 255)
+    Visual.TracerLine.Thickness = 1.2
+    Visual.TracerLine.Visible = false
+    
+    ESPVisuals[player] = Visual
+end
+
+-- Khởi tạo tự động cho người chơi cũ và mới gia nhập
+for _, p in pairs(Players:GetPlayers()) do CreateESP(p) end
+Players.PlayerAdded:Connect(CreateESP)
+
+-- Giải phóng bộ nhớ Core Drawing khi người chơi thoát
+Players.PlayerRemoving:Connect(function(player)
+    if ESPVisuals[player] then
+        ESPVisuals[player].Outline:Remove()
+        ESPVisuals[player].MainBox:Remove()
+        ESPVisuals[player].TracerLine:Remove()
+        ESPVisuals[player] = nil
+    end
+end)
+
+-- Vòng lặp cập nhật vị trí đồng thời Khung Hộp + Đường Chỉ Trỏ thẳng tới mục tiêu
+local function UpdateESP()
+    for player, visual in pairs(ESPVisuals) do
+        if BoxESPOn and player.Character and player.Character:FindFirstChild("HumanoidRootPart") and player.Character:FindFirstChild("Humanoid") and player.Character.Humanoid.Health > 0 then
+            local RootPart = player.Character.HumanoidRootPart
+            local Position, OnScreen = Camera:WorldToViewportPoint(RootPart.Position)
+            
+            if OnScreen then
+                -- 1. XỬ LÝ KHUNG HỘP CHỮ NHẬT CO GIÃN MÀU TRẮNG
+                local Scale = 1 / (Position.Z * 0.05) * 100
+                local Width, Height = Scale * 0.6, Scale * 0.9
+                
+                visual.Outline.Size = Vector2.new(Width, Height)
+                visual.Outline.Position = Vector2.new(Position.X - Width / 2, Position.Y - Height / 2)
+                visual.Outline.Visible = true
+                
+                visual.MainBox.Size = Vector2.new(Width, Height)
+                visual.MainBox.Position = Vector2.new(Position.X - Width / 2, Position.Y - Height / 2)
+                visual.MainBox.Visible = true
+                
+                -- 2. XỬ LÝ ĐƯỜNG KẺ CHỈ NỐI TỪ ĐÁY MÀN HÌNH LÊN NGƯỜI PLAYER
+                visual.TracerLine.From = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y)
+                visual.TracerLine.To = Vector2.new(Position.X, Position.Y + (Height / 2)) -- Chỉ vào phần chân khung để tạo góc nhìn thoáng nhất
+                visual.TracerLine.Visible = true
+            else
+                visual.Outline.Visible = false
+                visual.MainBox.Visible = false
+                visual.TracerLine.Visible = false
+            end
+        else
+            visual.Outline.Visible = false
+            visual.MainBox.Visible = false
+            visual.TracerLine.Visible = false
+        end
+    end
+end
+
+-- Thuật toán tìm kiếm mục tiêu trong phạm vi FOV (Khóa chuẩn vào Đầu)
+local function GetClosestTarget()
+    local Target = nil
+    local MaxDistance = FOVOn and FOVCircle.Radius or math.huge
+    
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("Head") and player.Character:FindFirstChild("Humanoid") and player.Character.Humanoid.Health > 0 then
+            local Head = player.Character.Head
+            local ScreenPos, OnScreen = Camera:WorldToViewportPoint(Head.Position)
+            
+            if OnScreen then
+                local MousePos = UserInputService:GetMouseLocation()
+                local Distance = (Vector2.new(ScreenPos.X, ScreenPos.Y) - MousePos).Magnitude
+                if Distance < MaxDistance then
+                    MaxDistance = Distance
+                    Target = Head
+                end
+            end
+        end
+    end
+    return Target
+end
+
+-- Render xử lý liên tục
+RunService.RenderStepped:Connect(function()
+    local MousePos = UserInputService:GetMouseLocation()
+    FOVCircle.Position = MousePos
+    
+    -- Thực thi vẽ ESP Kép (Hộp + Đường Chỉ Trỏ)
+    pcall(UpdateESP)
+    
+    -- Thực thi điều hướng ngắm Aimbot xịn bằng chuột ảo
+    if AimbotOn then
+        local Target = GetClosestTarget()
+        if Target then
+            local ScreenPos, OnScreen = Camera:WorldToViewportPoint(Target.Position)
+            if OnScreen then
+                local MainMousePos = UserInputService:GetMouseLocation()
+                local AimX = (ScreenPos.X - MainMousePos.X) * 0.35 
+                local AimY = (ScreenPos.Y - MainMousePos.Y) * 0.35
+                
+                mousemoverel(AimX, AimY) 
+            end
+        end
+    end
+end)
+
+-- Sự kiện bấm nút Box ESP
+ToggleBoxBtn.MouseButton1Click:Connect(function()
+    BoxESPOn = not BoxESPOn
+    if BoxESPOn then
+        ToggleBoxBtn.Text = "Box ESP: BẬT"
+        ToggleBoxBtn.BackgroundColor3 = Color3.fromRGB(40, 120, 40)
+    else
+        ToggleBoxBtn.Text = "Box ESP: TẮT"
+        ToggleBoxBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    end
+end)
+
+-- Sự kiện bấm nút Aimbot
+ToggleAimBtn.MouseButton1Click:Connect(function()
+    AimbotOn = not AimbotOn
+    if AimbotOn then
+        ToggleAimBtn.Text = "Aimbot: BẬT"
+        ToggleAimBtn.BackgroundColor3 = Color3.fromRGB(40, 120, 40)
+    else
+        ToggleAimBtn.Text = "Aimbot: TẮT"
+        ToggleAimBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    end
+end)
+
+-- Sự kiện bấm nút FOV
+ToggleFOVBtn.MouseButton1Click:Connect(function()
+    FOVOn = not FOVOn
+    FOVCircle.Visible = FOVOn
+    if FOVOn then
+        ToggleFOVBtn.Text = "FOV: BẬT"
+        ToggleFOVBtn.BackgroundColor3 = Color3.fromRGB(40, 120, 40)
+    else
+        ToggleFOVBtn.Text = "FOV: TẮT"
+        ToggleFOVBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    end
+end)
+
+-- THÔNG BÁO MẶC ĐỊNH HỆ THỐNG ROBLOX
+pcall(function()
+    game:GetService("StarterGui"):SetCore("SendNotification", {
+        Title = "AIMBOT HUB",
+        Text = "Kích Hoạt Thành Công TRUNG KIEN AIMBOT",
+        Duration = 5
+    })
+end)
